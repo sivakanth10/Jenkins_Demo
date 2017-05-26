@@ -1,0 +1,121 @@
+JENKINS
+Topics to cover:
+•	Jenkins installation
+•	Setup
+•	Tool configuration
+
+***************************************************************************
+Jenkins is an open source application tool which is used for Continuous Integration and continuous delivery of the projects. 
+It provides hundreds of Plugins to support building, deploying and automating any project.
+ 
+ 
+
+•	Jenkins Installation
+1) Software requirements
+- Jenkins is a self-contained Java based program ready to run out-of-the box, with packages for Windows, Mac OS X and other Unix like Operating systems
+- Memory at least 2GB of RAM recommended
+- Latest Java version installed
+2) Installation from Source
+Windows - 
+- Download Jenkins package from jenkins.io (Long Term Support version)
+- Open command prompt, browse to the directory where "jenkins.war" is present and run following command 
+# Java -jar Jenkins.war
+- Or directly install from the Website, using the Installer 
+	Download the latest package
+	Open the package and follow the instructions  
+Unix/Linux - 
+On Debian-based distributions, such as Ubuntu, you can install Jenkins through apt.
+    wget -q -O - https://pkg.jenkins.io/debian/jenkins.io.key | sudo          apt-key add -
+
+sudo sh -c 'echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
+
+sudo apt-get update
+
+sudo apt-get install jenkins
+
+By default, jenkins listens on port 8080
+Once jenkins is up and running, can be access through link http://localhost:8080
+Logs should be available in /var/log/jenkins/jenkins.log unless customise in /etc/default/jenkins
+**************************************************************************
+•	Setup and Tools Configuration
+Create Admin User and Password for Jenkins
+During the initial run of Jenkins a security token is generated and printed in the console log:
+*************************************************************
+
+	Jenkins initial setup is required. 
+	A security token is required to proceed.
+	Please use the following security token to proceed to installation:
+
+41d2b60b0e4cb5bf2025d33b21cb
+
+*************************************************************
+This token must be entered in the "Setup Wizard" the first time you open the Jenkins UI. This token will also serve as the default password for the user admin if you skip the user-creation step in the Setup Wizard.
+Manage Jenkins
+From Jenkins dashboard, configuration can be carried out using "Manage Jenkins" option from the left-hand side Menu through "Configure system" option
+This can be used to mention the Path of various tools which can be used during Builds, version of the ANT or MAVEN, security options, email server as well as other system wide configuration details based on the plugins installed
+Jenkins Home Directory - 
+-Jenkins uses disk space to perform build and store archives, it’s the default location
+- JENKINS_HOME is environment variable which can be used to set the desired location
+ # of Executors- 
+-Total number of concurrent jobs executions that can take place on Jenkins 
+Environment Variables- 
+-This is used to add custom environment variables which will apply to all the jobs. These are key-value pairs and can be accessed and used in Builds wherever required.
+Jenkins URL-
+- By default, the Jenkins URL points to localhost, we need to setup the DNS URL using this option (to create DNS for our project, place request through community.nml.com link) 
+Email Notification-
+- In the email Notification area, you can configure the SMTP settings for sending out emails. This is required for Jenkins to connect to the SMTP mail server and send out emails to the recipient list.
+ 
+
+Jenkins and Git setup (through Jenkins Plugins)
+- From Jenkins Dashboard, select "Manage Jenkins" option from left hand side
+- Then select "Manage Plug-ins" option
+- In next screen click on Available tab, it will list down plugins which are available for download, in filter tab type "Git Plugin"
+- From the list select "Git Plugin" and click on the "Install without Restart" button
+- In Repository URL tab, pass URL of the GitHub where code is available
+- Enter Credentials using SSH keys generated details
+	GitHub -> Settings -> DeployKeys
+- Install process will start and will able to see the progress on refresh
+- Once its complete "Git" option will be available in Source Code Management while configuring Jobs.
+
+Jenkins and Maven setup (through Jenkins Configure System)
+- From Jenkins Dashboard, select "Manage Jenkins" option from left hand side
+- Then select "Configure System" option
+- In the Configure system screen click on "Add Maven" button from the Maven section 
+- Uncheck install automatically, give name and location for MAVEN_HOME
+- Now you can create job with 'Maven Project' option.
+
+Installing Slaves (Using Manage Node)
+- On our master Jenkins, Click on Manage Jenkins > Manage Nodes Click on New Node > Enter node name and select Permanent Agent
+Fill out the following:
+	Set number of executors (one or more) as needed.
+	Set a Remote Root directory, a home directory for the master on the slave machine. 
+	For a Windows slave, use something like: "D:\Jenkins\"
+	Select the appropriate Usage setting:  Utilize this slave as much as possible 
+	Launch Method: Launch agent via Java Web Start (Recommended for Windows)
+	Availability --> Keep this slave online as much as possible 
+	Once node is created login to Slave server and follow the process to launch agent from browser on Slave to make it Online
+
+Demo- 
+New Item menu - For creating a New Job
+- Give the Jobname
+- Select type of the job as Freestyle Project Or Maven Or Pipeline and so on
+ 
+
+
+ 
+
+
+- Jenkins WebHook
+- To notify Jenkins for every change made in GitHub
+GitHub -> Settings -> Hooks & Services -> Jenkins (GitHub Plugin) - > Jenkins Hook URL add /github-webhook/ at the end of your jenkinsURL
+	Jenkins -> In build triggers column, select GitHub hook trigger for GITScm polling
+- Backing up and Restore process
+	For the backing up and restoring jenkins: 
+	• Where all the production severs are taken backed up on daily bases by storage team, 	whatever present in the local filer location. 
+	• The backup remains for the 30 days and then they are erased and keeps continuing 	throughout the cycles, this backup is stored in tapes 
+	• They are taken every day from 8 AM and 8 PM 
+	For Restoring
+• If something goes wrong and Jenkins broken down then we can restore it back by raising an irequest to the storage team for restoring 
+
+
+

@@ -1,0 +1,128 @@
+//Jenkins file for ExpenseReimbursementData
+
+node("master") { 
+    	
+    //Clean directory 
+    stage('clean workspace'){
+    	deleteDir()    	 	
+    }
+
+    //SCM Checkout Step
+	stage('SCM Checkout') { 
+		
+		echo "Branch - ${env.BRANCH_NAME}"
+		echo "Job name - ${env.JOB_NAME}"
+		//temp- to be removed
+		def branch = env.BRANCH_NAME
+		// if the build was triggered by master
+		if("${branch}" =~ /^master$/) {
+			buildType = '-RELEASE'
+		} else {
+		// otherwise set the build type to '-SNAPSHOT'
+			buildType = '-SNAPSHOT'
+		}
+
+		echo "buildType - ${buildType}"
+    	
+		//Checkout from git hub
+		checkout scm
+    }
+
+	//short git commit step
+	stage('Set Short Git Commit Hash'){
+		sh 'git rev-parse HEAD > commit'
+		git_commit = readFile('commit').trim()
+		SHORT_GIT_COMMIT = git_commit.take(6)
+		echo "Short Git Commit = ${SHORT_GIT_COMMIT}"
+	}
+
+    //Gradle Build Step
+	stage('Build'){    
+		try {
+			notifyBuild('STARTED')
+			echo 'Building..'
+			//currentBuild.displayName = "${SHORT_GIT_COMMIT}"
+			//buildVersionNumber = SHORT_GIT_COMMIT + buildType
+			
+      currentBuild.displayName = "${env.BUILD_NUMBER + '-' + SHORT_GIT_COMMIT}"
+      buildVersionNumber = env.BUILD_NUMBER + '-' + SHORT_GIT_COMMIT + buildType
+
+			sh 'git config core.fileMode false'
+			sh 'chmod +x ./gradlew'
+			sh "./gradlew clean build --refresh-dependencies -Pversion=${buildVersionNumber}"
+			//sh "./gradlew clean build "
+			archiveArtifacts 'build/libs/*'   
+      
+		} catch (e) {
+			// If there was an exception thrown, the build failed
+			currentBuild.result = "FAILED"
+			throw e
+		} finally {
+			// Success or failure, always send notifications
+			notifyBuild(currentBuild.result)
+		}	
+	}	
+        
+    //Run Unit Test
+	stage('Test') {
+        echo 'Testing..'		  
+	}
+	
+	//Push Jar to Nexus in Maven Format
+	stage('Nexus') {
+		echo 'Deploying....'
+		
+		def fileName = 'build/libs/' + 'ExpenseReimbursementData' + '-' + "${buildVersionNumber}" + '.jar' 
+		echo "$fileName"
+				
+		def pomFile = 'build/libs/pom.xml'
+		
+		def url = 'https://nexus.nml.com/'
+		
+		if ("${buildType}" == '-RELEASE') { 
+			url = url + 'repository/fieldrewards-maven-release/' 
+		} else { 
+			url = url + 'repository/fieldrewards-maven-snapshot/' 
+		} 
+		
+		
+    sh "/opt/apache-maven-3.0.5/bin/mvn -X deploy:deploy-file -DpomFile='build/libs/pom.xml' \
+		-Dfile=${fileName} \
+		-Dversion=${buildVersionNumber} \
+		-DrepositoryId='nexus' \
+		-Durl=${url}\
+		-DuniqueVersion=false "
+    }
+
+}
+
+//Defination for noftify build
+def notifyBuild(String buildStatus = 'STARTED') {
+	// build status of null means successful
+	buildStatus = buildStatus ?: 'SUCCESS'
+
+	// Default values
+	def slackToken = 'cSkTJ3ntSyNt4N1zpTl7xwmm'
+	def slackTeam = 'northwesternmutual'
+	def colorName = 'RED'
+	def colorCode = '#FF0000'
+	def subject = "${buildStatus}: Job '${env.JOB_NAME} [${SHORT_GIT_COMMIT}]'"
+	def summary = "${subject} (${env.BUILD_URL})"
+	def details = """<p>STARTED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]':</p>
+		<p>Check console output at &QUOT;<a href='${env.BUILD_URL}'>${env.JOB_NAME} [${env.BUILD_NUMBER}]</a>&QUOT;</p>"""
+
+	// Override default values based on build status
+	if (buildStatus == 'STARTED') {
+		color = 'YELLOW'
+		colorCode = '#FFFF00'
+	} else if (buildStatus == 'SUCCESS') {
+		color = 'GREEN'
+		colorCode = '#00FF00'
+	} else {
+		color = 'RED'
+		colorCode = '#FF0000'
+  }
+
+	// Send notifications
+	//slackSend (color: colorCode, message: summary, token: slackToken, teamDomain: slackTeam)
+}
